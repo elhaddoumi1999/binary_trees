@@ -1,135 +1,87 @@
 #include "binary_trees.h"
 
+int heap_extract(heap_t **root);
+void recurse_extract(heap_t *tree);
+heap_t *max(heap_t *tree);
 /**
- * count_heap_nodes - Counts the number of nodes inside a tree
- * @root: Pointer to tree's root node
+ * heap_extract - Extracts the root node of a Max Binary Heap.
  *
- * Return: Number of tree nodes
- */
-int count_heap_nodes(binary_tree_t *root)
-{
-	if (!root)
-		return (0);
-
-	return (1 + count_heap_nodes(root->left) +
-		    count_heap_nodes(root->right));
-}
-
-
-/**
- * bubble_down - Puts a node value in a correct position in the heap
- * @parent: Pointer to heap's node
- */
-void bubble_down(heap_t *parent)
-{
-	int temp;
-	heap_t *max_child = NULL;
-
-	if (!parent)
-		return;
-
-	while (parent && parent->left)
-	{
-		max_child = parent->left;
-
-		if (parent->right && parent->right->n > parent->left->n)
-			max_child = parent->right;
-
-		if (max_child->n > parent->n)
-		{
-			temp = parent->n;
-			parent->n = max_child->n;
-			max_child->n = temp;
-		}
-
-		parent = max_child;
-	}
-}
-
-
-/**
- * get_parent - Finds the parent node for a ceratin node
- * @root: Pointer to heap's node
- * @index: Index of the current node
- * @pind: Index been searched
+ * @root: A double pointer to the root node of heap.
  *
- * Return: Pointer to heap's node
- */
-heap_t *get_parent(heap_t *root, int index, int pind)
-{
-	heap_t *left = NULL, *right = NULL;
-
-	if (!root || index > pind)
-		return (NULL);
-
-	if (index == pind)
-		return (root);
-
-	left = get_parent(root->left, index * 2 + 1, pind);
-	if (left)
-		return (left);
-
-	right = get_parent(root->right, index * 2 + 2, pind);
-	if (right)
-		return (right);
-
-	return (NULL);
-}
-
-
-/**
- * remove_last_node - Removes the last node of a heap
- * @root: Doublepointer to heap's root node
- * @parent: Pointer to parent node from which to remove the last node
- */
-void remove_last_node(heap_t **root, heap_t *parent)
-{
-	if (parent == *root && !parent->left)
-	{
-		free(*root);
-		*root = NULL;
-
-		return;
-	}
-
-	if (parent->right)
-	{
-		(*root)->n = parent->right->n;
-		free(parent->right);
-		parent->right = NULL;
-	}
-	else if (parent->left)
-	{
-		(*root)->n = parent->left->n;
-		free(parent->left);
-		parent->left = NULL;
-	}
-
-	bubble_down(*root);
-}
-
-
-/**
- * heap_extract - Extracts the max value of a heap
- * @root: Double pointer to heap's root node
- *
- * Return: Heap's max value
+ * Return: The value stored in the root node.
  */
 int heap_extract(heap_t **root)
 {
-	int nodes, pind = 0, max_val = 0;
-	heap_t *parent;
+	int value;
 
-	if (!root || !(*root))
+	if (!*root)
 		return (0);
+	value = (*root)->n;
+	if (!(*root)->left)
+	{
+		value = (*root)->n;
+		free(*root);
+		*root = NULL;
+		return (value);
+	}
+	recurse_extract(*root);
+	return (value);
+}
 
-	max_val = (*root)->n;
-	nodes = count_heap_nodes(*root);
+/**
+ * recurse_extract - Recursively extracts the max from the tree.
+ *
+ * @tree: The pointer to the root of the tree.
+ */
+void recurse_extract(heap_t *tree)
+{
+	heap_t *sub_max, *right_max = NULL;
 
-	pind = (nodes - 2) / 2;
-	parent = get_parent(*root, 0, pind);
+	if (!tree->left)
+		return;
+	sub_max = max((tree)->left);
+	if (tree->right)
+		right_max = max(tree->right);
+	if (right_max && right_max->n > sub_max->n)
+		sub_max = right_max;
+	tree->n = sub_max->n;
+	if (!sub_max->left)
+	{
+		if (sub_max->parent && sub_max->parent->left == sub_max)
+			sub_max->parent->left = NULL;
+		if (sub_max->parent && sub_max->parent->right == sub_max)
+			sub_max->parent->right = NULL;
+		free(sub_max);
+	}
+	else
+		recurse_extract(sub_max);
+}
 
-	remove_last_node(root, parent);
+/**
+ * max - Finds the maximum node in a tree.
+ *
+ * @tree: The pointer to the root of the tree.
+ *
+ * Return: The node with the maximum value.
+ */
+heap_t *max(heap_t *tree)
+{
+	heap_t *curr_max, *left_max, *right_max;
 
-	return (max_val);
+	if (!tree->left)
+		return (tree);
+	left_max = max(tree->left);
+	if (left_max->n > tree->n)
+		curr_max = left_max;
+	else
+		curr_max = tree;
+	if (tree->right)
+	{
+		right_max = max(tree->right);
+		if (right_max->n > curr_max->n)
+			curr_max = right_max;
+		else
+			curr_max = tree;
+	}
+	return (curr_max);
 }
